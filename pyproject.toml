@@ -7,7 +7,15 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
+jax = "^0.4.3"
+einops = "^0.6.0"
+jaxlib = "^0.4.3"
 
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.1.0"
+jupyter = "^1.0.0"
+notebook = "^6.5.2"
 
 [build-system]
 requires = ["poetry-core"]
