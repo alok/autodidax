@@ -2,10 +2,11 @@
 """This file is for recreating Autodidax"""
 from __future__ import annotations
 from contextlib import contextmanager
+from dataclasses import dataclass
 
 # Primops
 
-from typing import Any, NamedTuple, Sequence
+from typing import Any, Callable, NamedTuple, Sequence
 from functools import partial
 
 import numpy as np
@@ -66,7 +67,7 @@ def reduce_sum(x, axis: Sequence[int] | int | None = None):
     elif isinstance(axis, Sequence):
         axis = tuple(axis)
     else:
-        axis = tuple(axis)
+        raise ValueError(f"{axis = } is not a sequence.")
     return bind1(reduce_sum_op, x, axis=axis)
 
 
@@ -110,3 +111,74 @@ def new_main(trace_type: type[Trace], global_data: Any | None = None):
     finally:
         ACTIVE_INTERPRETERS.pop()
     # ugh global vars
+
+
+@dataclass
+class Trace:
+    main: MainTrace
+
+    # Applicative?
+    def pure(self, val):
+        raise NotImplementedError
+
+    def lift(self, val):
+        raise NotImplementedError
+
+    def process_primitive(
+        self, primitive: Primitive, tracers: Sequence[Tracer], params: Any
+    ):
+        raise NotImplementedError
+
+
+# %%
+@dataclass
+class Tracer:
+    _trace: Trace
+    __array_priority__: int = 1000
+
+    @property
+    def aval(self):
+        raise NotImplementedError
+
+    def full_lower(self):
+        return self  # default
+
+    def __neg__(self):
+        return -self.aval
+
+    def __add__(self, other):
+        self.aval.__add__(self, other)
+
+    def __radd__(self, other):
+        self.aval.__radd__(self, other)
+
+    def __mul__(self, other):
+        self.aval.__mul__(self, other)
+
+    def __rmul__(self, other):
+        self.aval.__rmul__(self, other)
+
+    def __gt__(self, other) -> bool:
+        self.aval > other
+
+    def __lt__(self, other) -> bool:
+        self.aval < other
+
+    def __eq__(self, other) -> bool:
+        return self.aval == other
+
+    def __bool__(self) -> bool:
+        return self.aval.__bool__()
+
+    def __nonzero__(self, other) -> bool:
+        return self.aval.__nonzero__()
+
+    def __getattr__(self, name: str):
+        try:
+            return getattr(self, name)
+        except AttributeError:
+            raise AttributeError(f"{self.__class__.__name__} has no attribute {name}")
+
+
+def swap(f: Callable) -> Callable:
+    return lambda x, y: f(y, x)
